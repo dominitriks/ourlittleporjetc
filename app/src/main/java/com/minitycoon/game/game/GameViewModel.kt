@@ -79,13 +79,16 @@ class GameViewModel(private val saveManager: SaveManager) : ViewModel() {
         money += incomePerSecond
     }
 
-    fun upgrade() {
+    /** Returns true if the upgrade was purchased, so the UI can trigger one-shot visual feedback. */
+    fun upgrade(): Boolean {
         val cost = upgradeCost
         if (money >= cost) {
             money -= cost
             businessLevel += 1
             persist()
+            return true
         }
+        return false
     }
 
     /** Call from the UI whenever the app is backgrounded so progress is never lost. */

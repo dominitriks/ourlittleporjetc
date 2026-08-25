@@ -3,10 +3,34 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- chimney -->
     <path
-        android:fillColor="#FFC107"
-        android:pathData="M54,24 L74,44 L64,44 L64,54 L74,54 L74,74 L34,74 L34,54 L44,54 L44,44 L34,44 Z" />
+        android:fillColor="#9E9E9E"
+        android:pathData="M66,26 h10 v22 h-10z" />
+    <!-- smoke puffs -->
     <path
-        android:fillColor="#FFF8E1"
-        android:pathData="M44,60 h20 v8 h-20z" />
+        android:fillColor="#CFCFCF"
+        android:pathData="M71,14 m-6,0 a6,6 0,1 1,12 0 a6,6 0,1 1,-12 0" />
+    <path
+        android:fillColor="#CFCFCF"
+        android:pathData="M79,22 m-4,0 a4,4 0,1 1,8 0 a4,4 0,1 1,-8 0" />
+    <!-- roof -->
+    <path
+        android:fillColor="#C0392B"
+        android:pathData="M22,48 L54,28 L86,48 Z" />
+    <!-- building body -->
+    <path
+        android:fillColor="#EBD9B4"
+        android:pathData="M26,48 h56 v40 h-56z" />
+    <!-- windows -->
+    <path
+        android:fillColor="#64B5F6"
+        android:pathData="M34,56 h12 v12 h-12z" />
+    <path
+        android:fillColor="#64B5F6"
+        android:pathData="M62,56 h12 v12 h-12z" />
+    <!-- door -->
+    <path
+        android:fillColor="#6D4C41"
+        android:pathData="M48,70 h12 v18 h-12z" />
 </vector>
