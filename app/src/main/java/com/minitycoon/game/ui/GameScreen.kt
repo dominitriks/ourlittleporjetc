@@ -1,10 +1,5 @@
 package com.minitycoon.game.ui
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,12 +16,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,8 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,14 +43,26 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.minitycoon.game.game.FactoryVisualConfig
 import com.minitycoon.game.game.GameConfig
 import com.minitycoon.game.game.GameViewModel
+import com.minitycoon.game.ui.components.GameButton
+import com.minitycoon.game.ui.components.MoneyHud
+import com.minitycoon.game.ui.components.formatMoney
+import com.minitycoon.game.ui.theme.ButtonCollectBottom
+import com.minitycoon.game.ui.theme.ButtonCollectTop
+import com.minitycoon.game.ui.theme.ButtonTextLight
+import com.minitycoon.game.ui.theme.ButtonUpgradeBottom
+import com.minitycoon.game.ui.theme.ButtonUpgradeDisabledBottom
+import com.minitycoon.game.ui.theme.ButtonUpgradeDisabledTop
+import com.minitycoon.game.ui.theme.ButtonUpgradeTop
 import com.minitycoon.game.ui.theme.MoneyGreen
+import com.minitycoon.game.ui.theme.PanelBorderHighlight
+import com.minitycoon.game.ui.theme.PanelNavyBottom
+import com.minitycoon.game.ui.theme.PanelNavyTop
 import com.minitycoon.game.ui.theme.UpgradeOrange
 import com.minitycoon.game.ui.visuals.FactoryVisual
 import com.minitycoon.game.ui.visuals.FloatingText
 import com.minitycoon.game.ui.visuals.FloatingTextItem
 import com.minitycoon.game.ui.visuals.SceneBackground
 import kotlinx.coroutines.delay
-import java.util.Locale
 
 @Composable
 fun GameScreen(viewModel: GameViewModel) {
@@ -110,12 +117,11 @@ fun GameScreen(viewModel: GameViewModel) {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(innerPadding)
         ) {
-            TopMoneyBar(
+            MoneyHud(
                 money = viewModel.money,
                 incomePerSecond = viewModel.incomePerSecond,
                 pulseTrigger = moneyPulseTrigger,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             )
 
@@ -150,7 +156,7 @@ fun GameScreen(viewModel: GameViewModel) {
                 }
             }
 
-            BottomFactoryCard(
+            BottomFactoryPanel(
                 level = viewModel.businessLevel,
                 upgradeCost = viewModel.upgradeCost,
                 canAfford = viewModel.money >= viewModel.upgradeCost,
@@ -176,51 +182,7 @@ fun GameScreen(viewModel: GameViewModel) {
 }
 
 @Composable
-private fun TopMoneyBar(
-    money: Double,
-    incomePerSecond: Double,
-    pulseTrigger: Int,
-    modifier: Modifier = Modifier
-) {
-    val scale = remember { Animatable(1f) }
-    LaunchedEffect(pulseTrigger) {
-        if (pulseTrigger > 0) {
-            scale.animateTo(1.12f, tween(120))
-            scale.animateTo(1f, tween(180))
-        }
-    }
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 3.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "💰 ${formatMoney(money)}",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MoneyGreen,
-                modifier = Modifier.graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                }
-            )
-            Text(
-                text = "💵 ${formatMoney(incomePerSecond)}/s",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
-private fun BottomFactoryCard(
+private fun BottomFactoryPanel(
     level: Int,
     upgradeCost: Double,
     canAfford: Boolean,
@@ -228,85 +190,67 @@ private fun BottomFactoryCard(
     onCollect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(28.dp))
+            .drawBehind {
+                drawRect(brush = Brush.verticalGradient(listOf(PanelNavyTop, PanelNavyBottom)))
+                drawRect(
+                    color = PanelBorderHighlight,
+                    topLeft = Offset.Zero,
+                    size = Size(size.width, size.height * 0.04f)
+                )
+            }
+            .padding(20.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Factory", style = MaterialTheme.typography.headlineMedium)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Level $level",
+                "FACTORY",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = ButtonTextLight
+            )
+            Text(
+                "Level $level",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = ButtonTextLight.copy(alpha = 0.75f)
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                PressableButton(
+                GameButton(
                     onClick = onUpgrade,
                     enabled = canAfford,
-                    containerColor = UpgradeOrange,
-                    modifier = Modifier.weight(1f)
+                    topColor = ButtonUpgradeTop,
+                    bottomColor = ButtonUpgradeBottom,
+                    disabledTopColor = ButtonUpgradeDisabledTop,
+                    disabledBottomColor = ButtonUpgradeDisabledBottom,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("UPGRADE", fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Cost: ${formatMoney(upgradeCost)}", color = Color.White)
-                    }
+                    Text("UPGRADE", fontWeight = FontWeight.Bold, color = ButtonTextLight)
+                    Text(formatMoney(upgradeCost), color = ButtonTextLight.copy(alpha = 0.9f))
                 }
 
-                PressableButton(
+                GameButton(
                     onClick = onCollect,
                     enabled = true,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
+                    topColor = ButtonCollectTop,
+                    bottomColor = ButtonCollectBottom,
+                    disabledTopColor = ButtonCollectTop,
+                    disabledBottomColor = ButtonCollectBottom,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp)
                 ) {
-                    Text("COLLECT", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("COLLECT", fontWeight = FontWeight.Bold, color = ButtonTextLight)
                 }
             }
         }
     }
 }
-
-/** Shared press-scale feedback for the game's primary action buttons. */
-@Composable
-private fun PressableButton(
-    onClick: () -> Unit,
-    enabled: Boolean,
-    containerColor: Color,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.94f else 1f, label = "buttonScale")
-
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        interactionSource = interactionSource,
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            disabledContainerColor = containerColor.copy(alpha = 0.4f)
-        ),
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-    ) {
-        content()
-    }
-}
-
-private fun formatMoney(value: Double): String = "$" + String.format(Locale.US, "%,.0f", value)
